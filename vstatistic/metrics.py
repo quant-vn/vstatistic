@@ -44,60 +44,60 @@ def _calc_dd(df, display=True, as_pct=False):
     ):
         dd_stats = {
             col: {
-                "Max Drawdown %": ret_dd[col]
+                "max_drawdown %": ret_dd[col]
                 .sort_values(by="max drawdown", ascending=True)["max drawdown"]
                 .values[0]
                 / 100,
-                "Longest DD Days": str(
+                "longest_dd_days": str(
                     np.round(
                         ret_dd[col]
                         .sort_values(by="days", ascending=False)["days"]
                         .values[0]
                     )
                 ),
-                "Avg. Drawdown %": ret_dd[col]["max drawdown"].mean() / 100,
-                "Avg. Drawdown Days": str(np.round(ret_dd[col]["days"].mean())),
+                "avg_drawdown %": ret_dd[col]["max drawdown"].mean() / 100,
+                "avg_drawdown_days": str(np.round(ret_dd[col]["days"].mean())),
             }
             for col in ret_dd.columns.get_level_values(0)
         }
     else:
         dd_stats = {
             "returns": {
-                "Max Drawdown %": ret_dd.sort_values(by="max drawdown", ascending=True)[
+                "max_drawdown %": ret_dd.sort_values(by="max drawdown", ascending=True)[
                     "max drawdown"
                 ].values[0]
                 / 100,
-                "Longest DD Days": str(
+                "longest_dd_days": str(
                     np.round(
                         ret_dd.sort_values(by="days", ascending=False)["days"].values[0]
                     )
                 ),
-                "Avg. Drawdown %": ret_dd["max drawdown"].mean() / 100,
-                "Avg. Drawdown Days": str(np.round(ret_dd["days"].mean())),
+                "avg_drawdown %": ret_dd["max drawdown"].mean() / 100,
+                "avg_drawdown_days": str(np.round(ret_dd["days"].mean())),
             }
         }
     if "benchmark" in df and (dd_info.columns, pd.MultiIndex):
         bench_dd = dd_info["benchmark"].sort_values(by="max drawdown")
         dd_stats["benchmark"] = {
-            "Max Drawdown %": bench_dd.sort_values(by="max drawdown", ascending=True)[
+            "max_drawdown %": bench_dd.sort_values(by="max drawdown", ascending=True)[
                 "max drawdown"
             ].values[0]
             / 100,
-            "Longest DD Days": str(
+            "longest_dd_days": str(
                 np.round(
                     bench_dd.sort_values(by="days", ascending=False)["days"].values[0]
                 )
             ),
-            "Avg. Drawdown %": bench_dd["max drawdown"].mean() / 100,
-            "Avg. Drawdown Days": str(np.round(bench_dd["days"].mean())),
+            "avg_drawdown %": bench_dd["max drawdown"].mean() / 100,
+            "avg_drawdown_days": str(np.round(bench_dd["days"].mean())),
         }
 
     # pct multiplier
     pct = 100 if display or as_pct else 1
 
     dd_stats = pd.DataFrame(dd_stats).T
-    dd_stats["Max Drawdown %"] = dd_stats["Max Drawdown %"].astype(float) * pct
-    dd_stats["Avg. Drawdown %"] = dd_stats["Avg. Drawdown %"].astype(float) * pct
+    dd_stats["max_drawdown %"] = dd_stats["max_drawdown %"].astype(float) * pct
+    dd_stats["avg_drawdown %"] = dd_stats["avg_drawdown %"].astype(float) * pct
 
     return dd_stats.T
 
@@ -195,40 +195,40 @@ def metrics(
     )
 
     metrics = pd.DataFrame()
-    metrics["Start Period"] = pd.Series(s_start)
-    metrics["End Period"] = pd.Series(s_end)
-    metrics["Risk-Free Rate %"] = pd.Series(s_rf) * 100
-    metrics["Time in Market %"] = core.exposure(df, is_prepare_returns=False) * pct
+    metrics["start_period"] = pd.Series(s_start)
+    metrics["end_period"] = pd.Series(s_end)
+    metrics["risk_free_rate %%"] = pd.Series(s_rf) * 100
+    metrics["time_in_market %%"] = core.exposure(df, is_prepare_returns=False) * pct
 
     metrics["~"] = blank
 
     if compounded:
-        metrics["Cumulative Return %"] = (core.comp(df) * pct).map("{:,.2f}".format)
+        metrics["cumulative_return %%"] = (core.comp(df) * pct).map("{:,.2f}".format)
     else:
-        metrics["Total Return %"] = (df.sum() * pct).map("{:,.2f}".format)
+        metrics["total_return %%"] = (df.sum() * pct).map("{:,.2f}".format)
 
-    metrics["CAGR﹪%"] = core.cagr(df, rf, compounded) * pct
+    metrics["cagr %%"] = core.cagr(df, rf, compounded) * pct
 
     metrics["~~~~~~~~~~~~~~"] = blank
 
-    metrics["Sharpe"] = core.sharpe(df, rf, win_year, True)
-    metrics["Prob. Sharpe Ratio %"] = (
+    metrics["sharpe"] = core.sharpe(df, rf, win_year, True)
+    metrics["prob_sharpe_ratio %%"] = (
         core.probabilistic_sharpe_ratio(df, rf, win_year, False) * pct
     )
     if mode.lower() == "full":
-        metrics["Smart Sharpe"] = core.smart_sharpe(df, rf, win_year, True)
+        metrics["smart_sharpe"] = core.smart_sharpe(df, rf, win_year, True)
 
-    metrics["Sortino"] = core.sortino(df, rf, win_year, True)
+    metrics["sortino"] = core.sortino(df, rf, win_year, True)
     if mode.lower() == "full":
-        metrics["Smart Sortino"] = core.smart_sortino(df, rf, win_year, True)
-    metrics["Sortino/√2"] = metrics["Sortino"] / math.sqrt(2)
+        metrics["smart_sortino"] = core.smart_sortino(df, rf, win_year, True)
+    metrics["sortino_sqrt2"] = metrics["sortino"] / math.sqrt(2)
     if mode.lower() == "full":
-        metrics["Smart Sortino/√2"] = metrics["Smart Sortino"] / math.sqrt(2)
-    metrics["Omega"] = core.omega(df, rf, 0.0, win_year)
+        metrics["smart_sortino_sqrt2"] = metrics["smart_sortino"] / math.sqrt(2)
+    metrics["omega"] = core.omega(df, rf, 0.0, win_year)
 
     metrics["~~~~~~~~"] = blank
-    metrics["Max Drawdown %"] = blank
-    metrics["Longest DD Days"] = blank
+    metrics["max_drawdown %%"] = blank
+    metrics["longest_dd_days"] = blank
 
     if mode.lower() == "full":
         if isinstance(returns, pd.Series):
@@ -254,19 +254,19 @@ def metrics(
 
             vol_ = [ret_vol, bench_vol]
             if isinstance(ret_vol, list):
-                metrics["Volatility (ann.) %"] = list(pd.core.common.flatten(vol_))
+                metrics["volatility %%"] = list(pd.core.common.flatten(vol_))
             else:
-                metrics["Volatility (ann.) %"] = vol_
+                metrics["volatility %%"] = vol_
 
             if isinstance(returns, pd.Series):
-                metrics["R^2"] = core.r_squared(
+                metrics["r2"] = core.r_squared(
                     df["returns"], df["benchmark"], is_prepare_returns=False
                 )
-                metrics["Information Ratio"] = core.information_ratio(
+                metrics["information_ratio"] = core.information_ratio(
                     df["returns"], df["benchmark"], is_prepare_returns=False
                 )
             elif isinstance(returns, pd.DataFrame):
-                metrics["R^2"] = (
+                metrics["r2"] = (
                     [
                         core.r_squared(
                             df[strategy_col], df["benchmark"], is_prepare_returns=False
@@ -274,7 +274,7 @@ def metrics(
                         for strategy_col in df_strategy_columns
                     ]
                 ) + ["-"]
-                metrics["Information Ratio"] = (
+                metrics["information_ratio"] = (
                     [
                         core.information_ratio(
                             df[strategy_col], df["benchmark"], is_prepare_returns=False
@@ -284,93 +284,95 @@ def metrics(
                 ) + ["-"]
         else:
             if isinstance(returns, pd.Series):
-                metrics["Volatility (ann.) %"] = [ret_vol]
+                metrics["volatility %%"] = [ret_vol]
             elif isinstance(returns, pd.DataFrame):
-                metrics["Volatility (ann.) %"] = ret_vol
+                metrics["volatility %%"] = ret_vol
 
-        metrics["Calmar"] = core.calmar(df, is_prepare_returns=False)
-        metrics["Skew"] = core.skew(df, is_prepare_returns=False)
-        metrics["Kurtosis"] = core.kurtosis(df, is_prepare_returns=False)
+        metrics["calmar"] = core.calmar(df, is_prepare_returns=False)
+        metrics["skew"] = core.skew(df, is_prepare_returns=False)
+        metrics["kurtosis"] = core.kurtosis(df, is_prepare_returns=False)
 
         metrics["~~~~~~~~~~"] = blank
 
-        metrics["Expected Daily %%"] = (
+        metrics["expected_daily %%"] = (
             core.expected_return(df, compounded=compounded, is_prepare_returns=False) * pct
         )
-        metrics["Expected Monthly %%"] = (
+        metrics["expected_monthly %%"] = (
             core.expected_return(
                 df, compounded=compounded, aggregate="M", is_prepare_returns=False
             ) * pct
         )
-        metrics["Expected Yearly %%"] = (
+        metrics["expected_yearly %%"] = (
             core.expected_return(
                 df, compounded=compounded, aggregate="A", is_prepare_returns=False
             ) * pct
         )
-        metrics["Kelly Criterion %"] = (core.kelly_criterion(df, is_prepare_returns=False) * pct)
-        metrics["Risk of Ruin %"] = core.risk_of_ruin(df, is_prepare_returns=False)
-        metrics["Daily Value-at-Risk %"] = -abs(core.var(df, is_prepare_returns=False) * pct)
-        metrics["Expected Shortfall (cVaR) %"] = -abs(core.cvar(df, is_prepare_returns=False) * pct)
+        metrics["kelly_criterion %%"] = (core.kelly_criterion(df, is_prepare_returns=False) * pct)
+        metrics["risk_of_ruin %%"] = core.risk_of_ruin(df, is_prepare_returns=False)
+        metrics["daily_value_at_risk %%"] = -abs(core.var(df, is_prepare_returns=False) * pct)
+        metrics["expected_shortfall %%"] = -abs(core.cvar(df, is_prepare_returns=False) * pct)
 
     metrics["~~~~~~"] = blank
 
     if mode.lower() == "full":
-        metrics["Max Consecutive Wins *int"] = core.consecutive_wins(df)
-        metrics["Max Consecutive Losses *int"] = core.consecutive_losses(df)
+        metrics["max_consecutive_wins *int"] = core.consecutive_wins(df)
+        metrics["max_consecutive_losses *int"] = core.consecutive_losses(df)
 
-    metrics["Gain/Pain Ratio"] = core.gain_to_pain_ratio(df, rf)
-    metrics["Gain/Pain (1M)"] = core.gain_to_pain_ratio(df, rf, MONTH_END)
+    metrics["gain_pain_ratio"] = core.gain_to_pain_ratio(df, rf)
+    metrics["gain_pain_1m"] = core.gain_to_pain_ratio(df, rf, MONTH_END)
     # if mode.lower() == 'full':
     #     metrics['GPR (3M)'] = _stats.gain_to_pain_ratio(df, rf, "Q")
     #     metrics['GPR (6M)'] = _stats.gain_to_pain_ratio(df, rf, "2Q")
     #     metrics['GPR (1Y)'] = _stats.gain_to_pain_ratio(df, rf, "A")
     metrics["~~~~~~~"] = blank
 
-    metrics["Payoff Ratio"] = core.payoff_ratio(df, is_prepare_returns=False)
-    metrics["Profit Factor"] = core.profit_factor(df, is_prepare_returns=False)
-    metrics["Common Sense Ratio"] = core.common_sense_ratio(df, is_prepare_returns=False)
-    metrics["CPC Index"] = core.cpc_index(df, is_prepare_returns=False)
-    metrics["Tail Ratio"] = core.tail_ratio(df, is_prepare_returns=False)
-    metrics["Outlier Win Ratio"] = core.outlier_win_ratio(df, is_prepare_returns=False)
-    metrics["Outlier Loss Ratio"] = core.outlier_loss_ratio(df, is_prepare_returns=False)
+    metrics["payoff_ratio"] = core.payoff_ratio(df, is_prepare_returns=False)
+    metrics["profit_factor"] = core.profit_factor(df, is_prepare_returns=False)
+    metrics["common_sense_ratio"] = core.common_sense_ratio(df, is_prepare_returns=False)
+    metrics["cpc_index"] = core.cpc_index(df, is_prepare_returns=False)
+    metrics["tail_ratio"] = core.tail_ratio(df, is_prepare_returns=False)
+    metrics["outlier_win_ratio"] = core.outlier_win_ratio(df, is_prepare_returns=False)
+    metrics["outlier_loss_ratio"] = core.outlier_loss_ratio(df, is_prepare_returns=False)
 
     # returns
     metrics["~~"] = blank
     comp_func = core.comp if compounded else np.sum
 
     today = df.index[-1]
-    metrics["MTD %"] = comp_func(df[df.index >= datetime(today.year, today.month, 1)]) * pct
+    metrics["mtd %%"] = comp_func(df[df.index >= datetime(today.year, today.month, 1)]) * pct
 
     d = today - relativedelta(months=3)
-    metrics["3M %"] = comp_func(df[df.index >= d]) * pct
+    metrics["3m %%"] = comp_func(df[df.index >= d]) * pct
     d = today - relativedelta(months=6)
-    metrics["6M %"] = comp_func(df[df.index >= d]) * pct
-    metrics["YTD %"] = comp_func(df[df.index >= datetime(today.year, 1, 1)]) * pct
+    metrics["6m %%"] = comp_func(df[df.index >= d]) * pct
+    metrics["ytd %%"] = comp_func(df[df.index >= datetime(today.year, 1, 1)]) * pct
     d = today - relativedelta(years=1)
-    metrics["1Y %"] = comp_func(df[df.index >= d]) * pct
+    metrics["1y %%"] = comp_func(df[df.index >= d]) * pct
     d = today - relativedelta(months=35)
-    metrics["3Y (ann.) %"] = core.cagr(df[df.index >= d], 0.0, compounded) * pct
+    metrics["3y %%"] = core.cagr(df[df.index >= d], 0.0, compounded) * pct
     d = today - relativedelta(months=59)
-    metrics["5Y (ann.) %"] = core.cagr(df[df.index >= d], 0.0, compounded) * pct
+    metrics["5y %%"] = core.cagr(df[df.index >= d], 0.0, compounded) * pct
     d = today - relativedelta(years=10)
-    metrics["10Y (ann.) %"] = core.cagr(df[df.index >= d], 0.0, compounded) * pct
-    metrics["All-time (ann.) %"] = core.cagr(df, 0.0, compounded) * pct
+    metrics["10y %%"] = core.cagr(df[df.index >= d], 0.0, compounded) * pct
+    metrics["all_time %%"] = core.cagr(df, 0.0, compounded) * pct
 
     # best/worst
     if mode.lower() == "full":
         metrics["~~~"] = blank
-        metrics["Best Day %"] = core.best(df, compounded=compounded, is_prepare_returns=False) * pct
-        metrics["Worst Day %"] = core.worst(df, is_prepare_returns=False) * pct
-        metrics["Best Month %"] = (
+        metrics["best_day %%"] = core.best(
+            df, compounded=compounded, is_prepare_returns=False
+        ) * pct
+        metrics["worst_day %%"] = core.worst(df, is_prepare_returns=False) * pct
+        metrics["best_month %%"] = (
             core.best(df, compounded=compounded, aggregate="M", is_prepare_returns=False) * pct
         )
-        metrics["Worst Month %"] = (
+        metrics["worst_month %%"] = (
             core.worst(df, aggregate="M", is_prepare_returns=False) * pct
         )
-        metrics["Best Year %"] = (
+        metrics["best_year %%"] = (
             core.best(df, compounded=compounded, aggregate="A", is_prepare_returns=False) * pct
         )
-        metrics["Worst Year %"] = (
+        metrics["worst_year %%"] = (
             core.worst(df, compounded=compounded, aggregate="A", is_prepare_returns=False) * pct
         )
 
@@ -378,27 +380,27 @@ def metrics(
     metrics["~~~~"] = blank
     for ix, row in dd.iterrows():
         metrics[ix] = row
-    metrics["Recovery Factor"] = core.recovery_factor(df)
-    metrics["Ulcer Index"] = core.ulcer_index(df)
-    metrics["Serenity Index"] = core.serenity_index(df, rf)
+    metrics["recovery_factor"] = core.recovery_factor(df)
+    metrics["ulcer_index"] = core.ulcer_index(df)
+    metrics["serenity_index"] = core.serenity_index(df, rf)
 
     # win rate
     if mode.lower() == "full":
         metrics["~~~~~"] = blank
-        metrics["Avg. Up Month %"] = (
+        metrics["avg_up_month %%"] = (
             core.avg_win(df, compounded=compounded, aggregate="M", is_prepare_returns=False) * pct
         )
-        metrics["Avg. Down Month %"] = (
+        metrics["avg_down_month %%"] = (
             core.avg_loss(df, compounded=compounded, aggregate="M", is_prepare_returns=False) * pct
         )
-        metrics["Win Days %%"] = core.win_rate(df, is_prepare_returns=False) * pct
-        metrics["Win Month %%"] = (
+        metrics["win_days"] = core.win_rate(df, is_prepare_returns=False) * pct
+        metrics["win_month"] = (
             core.win_rate(df, compounded=compounded, aggregate="M", is_prepare_returns=False) * pct
         )
-        metrics["Win Quarter %%"] = (
+        metrics["win_quarter %%"] = (
             core.win_rate(df, compounded=compounded, aggregate="Q", is_prepare_returns=False) * pct
         )
-        metrics["Win Year %%"] = (
+        metrics["win_year %%"] = (
             core.win_rate(df, compounded=compounded, aggregate="A", is_prepare_returns=False) * pct
         )
 
@@ -408,13 +410,13 @@ def metrics(
                 greeks = core.greeks(
                     df["returns"], df["benchmark"], win_year, is_prepare_returns=False
                 )
-                metrics["Beta"] = [str(round(greeks["beta"], 2)), "-"]
-                metrics["Alpha"] = [str(round(greeks["alpha"], 2)), "-"]
-                metrics["Correlation"] = [
+                metrics["beta"] = [str(round(greeks["beta"], 2)), "-"]
+                metrics["alpha"] = [str(round(greeks["alpha"], 2)), "-"]
+                metrics["correlation"] = [
                     str(round(df["benchmark"].corr(df["returns"]) * pct, 2)) + "%",
                     "-",
                 ]
-                metrics["Treynor Ratio"] = [
+                metrics["treynor_ratio"] = [
                     str(
                         round(
                             core.treynor_ratio(
@@ -437,16 +439,16 @@ def metrics(
                     )
                     for strategy_col in df_strategy_columns
                 ]
-                metrics["Beta"] = [str(round(g["beta"], 2)) for g in greeks] + ["-"]
-                metrics["Alpha"] = [str(round(g["alpha"], 2)) for g in greeks] + ["-"]
-                metrics["Correlation"] = (
+                metrics["beta"] = [str(round(g["beta"], 2)) for g in greeks] + ["-"]
+                metrics["alpha"] = [str(round(g["alpha"], 2)) for g in greeks] + ["-"]
+                metrics["correlation"] = (
                     [
                         str(round(df["benchmark"].corr(df[strategy_col]) * pct, 2))
                         + "%"
                         for strategy_col in df_strategy_columns
                     ]
                 ) + ["-"]
-                metrics["Treynor Ratio"] = (
+                metrics["treynor_ratio"] = (
                     [
                         str(
                             round(
@@ -477,18 +479,18 @@ def metrics(
             metrics[col] = metrics[col] + "%"
 
     try:
-        metrics["Longest DD Days"] = pd.to_numeric(metrics["Longest DD Days"]).astype("int")
-        metrics["Avg. Drawdown Days"] = pd.to_numeric(metrics["Avg. Drawdown Days"]).astype("int")
+        metrics["longest_dd_days"] = pd.to_numeric(metrics["longest_dd_days"]).astype("int")
+        metrics["avg_drawdown_days"] = pd.to_numeric(metrics["avg_drawdown_days"]).astype("int")
 
         if display or "internal" in kwargs:
-            metrics["Longest DD Days"] = metrics["Longest DD Days"].astype(str)
-            metrics["Avg. Drawdown Days"] = metrics["Avg. Drawdown Days"].astype(str)
+            metrics["longest_dd_days"] = metrics["longest_dd_days"].astype(str)
+            metrics["avg_drawdown_days"] = metrics["avg_drawdown_days"].astype(str)
     except Exception:
-        metrics["Longest DD Days"] = "-"
-        metrics["Avg. Drawdown Days"] = "-"
+        metrics["longest_dd_days"] = "-"
+        metrics["avg_drawdown_days"] = "-"
         if display or "internal" in kwargs:
-            metrics["Longest DD Days"] = "-"
-            metrics["Avg. Drawdown Days"] = "-"
+            metrics["longest_dd_days"] = "-"
+            metrics["avg_drawdown_days"] = "-"
 
     metrics.columns = [col if "~" not in col else "" for col in metrics.columns]
     metrics.columns = [col[:-1] if "%" in col else col for col in metrics.columns]
