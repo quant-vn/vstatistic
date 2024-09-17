@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "vstatistic"
+version = "0.1.0"
+license = "MIT"
+description = "vStatistic: A Portfolio analytics for quants"
+repository = "https://github.com/quant-vn/vbroker"
+homepage = "https://quant.vn"
+authors = ["thync <thync@outlook.com>"]
+readme = ["README.md", "LICENSE"]
+classifiers = [
+    "Typing :: Typed",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pandas = "^2.2.2"
+scipy = "^1.2"
+packaging = "^24.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -21,7 +21,6 @@ def compsum(returns):
 
 def comp(returns):
     """Calculates total compounded returns"""
-    print(returns.add(1).prod() - 1)
     return returns.add(1).prod() - 1
 
 
@@ -133,7 +132,7 @@ def expected_return(returns, aggregate=None, compounded=True, is_prepare_returns
     if is_prepare_returns:
         returns = prepare_returns(returns)
     returns = aggregate_returns(returns, aggregate, compounded)
-    return np.prod(1 + returns) ** (1 / len(returns)) - 1
+    return np.prod(1 + returns, axis=0) ** (1 / len(returns)) - 1
 
 
 def distribution(returns, compounded=True, is_prepare_returns=True):

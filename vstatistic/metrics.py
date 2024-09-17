@@ -2,9 +2,20 @@ import math
 import numpy as np
 import pandas as pd
 from datetime import datetime
+from packaging.version import Version
 from dateutil.relativedelta import relativedelta
 
 from . import core, utils
+
+PANDAS_VERSION_2 = Version(pd.__version__) >= Version("2")
+PANDAS_VERSION_2_2 = Version(pd.__version__) >= Version("2.2")
+
+if PANDAS_VERSION_2_2:
+    MONTH_END = "ME"
+    YEAR_END = "YE"
+else:
+    MONTH_END = "M"
+    YEAR_END = "Y"
 
 
 def _calc_dd(df, display=True, as_pct=False):
@@ -308,7 +319,7 @@ def metrics(
         metrics["Max Consecutive Losses *int"] = core.consecutive_losses(df)
 
     metrics["Gain/Pain Ratio"] = core.gain_to_pain_ratio(df, rf)
-    metrics["Gain/Pain (1M)"] = core.gain_to_pain_ratio(df, rf, "M")
+    metrics["Gain/Pain (1M)"] = core.gain_to_pain_ratio(df, rf, MONTH_END)
     # if mode.lower() == 'full':
     #     metrics['GPR (3M)'] = _stats.gain_to_pain_ratio(df, rf, "Q")
     #     metrics['GPR (6M)'] = _stats.gain_to_pain_ratio(df, rf, "2Q")
