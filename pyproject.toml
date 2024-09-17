@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "vstatistic"
-version = "0.1.1"
+version = "0.1.3"
 license = "MIT"
 description = "vStatistic: A Portfolio analytics for quants"
-repository = "https://github.com/quant-vn/vbroker"
+repository = "https://github.com/quant-vn/vstatistic"
 homepage = "https://quant.vn"
 authors = ["thync <thync@outlook.com>"]
 readme = ["README.md", "LICENSE"]
