@@ -1,9 +1,7 @@
 import pandas as pd
 import vstatistic as vs
 
-data = pd.read_csv(
-    '/Users/thync/Projects/open/vstatistic/tests/returns.csv', index_col='Date', parse_dates=True
-)
+data = pd.read_csv('tests/returns.csv', index_col='Date', parse_dates=True)
 prices = data.Close
 print(prices)
 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")

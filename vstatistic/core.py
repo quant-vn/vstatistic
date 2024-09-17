@@ -26,17 +26,18 @@ def comp(returns):
 
 def to_excess_returns(returns, rf, nperiods=None):
     """
-    Calculates excess returns by subtracting
-    risk-free returns from total returns
-
-    Args:
-        * returns (Series, DataFrame): Returns
-        * rf (float, Series, DataFrame): Risk-Free rate(s)
-        * nperiods (int): Optional. If provided, will convert rf to different
-            frequency using deannualize
+    Calculates the excess returns by subtracting the risk-free rate from the given returns.
+    Parameters:
+        - returns (pandas.Series): The returns data.
+        - rf (float or pandas.Series): The risk-free rate. If it is an integer,
+                                    it will be converted to float. If it is a pandas.Series,
+                                    it will be aligned with the returns data.
+        - nperiods (int, optional): The number of periods. If provided,
+                                the risk-free rate will be deannualized.
     Returns:
-        * excess_returns (Series, DataFrame): Returns - rf
+        - pandas.Series: The excess returns.
     """
+
     if isinstance(rf, int):
         rf = float(rf)
 
@@ -51,7 +52,15 @@ def to_excess_returns(returns, rf, nperiods=None):
 
 
 def prepare_returns(data, rf=0.0, nperiods=None):
-    """Converts price data into returns + cleanup"""
+    """
+    Prepare the given data for return calculations.
+    Parameters:
+        - data: The input data. It can be a pandas DataFrame, pandas Series, or a numeric value.
+        - rf: The risk-free rate. Default is 0.0.
+        - nperiods: The number of periods. Default is None.
+    Returns:
+        - The prepared data for return calculations.
+    """
     data = data.copy()
     function = inspect.stack()[1][3]
     if isinstance(data, pd.DataFrame):
@@ -80,9 +89,14 @@ def prepare_returns(data, rf=0.0, nperiods=None):
 
 
 def group_returns(returns, groupby, compounded=False):
-    """Summarize returns
-    group_returns(df, df.index.year)
-    group_returns(df, [df.index.year, df.index.month])
+    """
+    Group returns by a specified column and calculate the sum or compounded returns.
+    Parameters:
+        - returns (DataFrame): The DataFrame containing the returns data.
+        - groupby (str): The column to group the returns by.
+        - compounded (bool, optional): Whether to calculate compounded returns. Defaults to False.
+    Returns:
+        - DataFrame: The grouped returns DataFrame.
     """
     if compounded:
         return returns.groupby(groupby).apply(comp)
@@ -255,7 +269,6 @@ def exposure(returns, is_prepare_returns=True):
 
 def win_rate(returns, aggregate=None, compounded=True, is_prepare_returns=True):
     """Calculates the win ratio for a period"""
-
     def _win_rate(series):
         try:
             return len(series[series > 0]) / len(series[series != 0])
@@ -317,7 +330,6 @@ def volatility(returns, periods=252, annualize=True, is_prepare_returns=True):
     std = returns.std()
     if annualize:
         return std * np.sqrt(periods)
-
     return std
 
 
@@ -372,11 +384,11 @@ def sharpe(returns, rf=0.0, periods=252, annualize=True, smart=False):
     In this case, rf is assumed to be expressed in yearly (annualized) terms
 
     Args:
-        * returns (Series, DataFrame): Input return series
-        * rf (float): Risk-free rate expressed as a yearly (annualized) return
-        * periods (int): Freq. of returns (252/365 for daily, 12 for monthly)
-        * annualize: return annualize sharpe?
-        * smart: return smart sharpe ratio
+        - returns (Series, DataFrame): Input return series
+        - rf (float): Risk-free rate expressed as a yearly (annualized) return
+        - periods (int): Freq. of returns (252/365 for daily, 12 for monthly)
+        - annualize: return annualize sharpe?
+        - smart: return smart sharpe ratio
     """
     if rf != 0 and periods is None:
         raise Exception("Must provide periods if rf != 0")
@@ -412,7 +424,6 @@ def rolling_sharpe(
 
     if is_prepare_returns:
         returns = prepare_returns(returns, rf, rolling_period)
-
     res = returns.rolling(rolling_period).mean() / returns.rolling(rolling_period).std()
 
     if annualize:
@@ -980,7 +991,6 @@ def kelly_criterion(returns, is_prepare_returns=True):
     win_loss_ratio = payoff_ratio(returns)
     win_prob = win_rate(returns)
     lose_prob = 1 - win_prob
-
     return ((win_loss_ratio * win_prob) - lose_prob) / win_loss_ratio
 
 
