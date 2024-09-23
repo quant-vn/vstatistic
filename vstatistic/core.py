@@ -2,7 +2,7 @@ import math
 import inspect
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
+from scipy.stats import norm, linregress
 from pandas.core.base import PandasObject
 
 from . import utils
@@ -76,7 +76,7 @@ def prepare_returns(data, rf=0.0, nperiods=None):
     if isinstance(data, (pd.DataFrame, pd.Series)):
         data = data.fillna(0).replace([np.inf, -np.inf], float("NaN"))
     unnecessary_function_calls = [
-        "_prepare_benchmark",
+        "prepare_benchmark",
         "cagr",
         "gain_to_pain_ratio",
         "rolling_volatility",
@@ -994,6 +994,122 @@ def kelly_criterion(returns, is_prepare_returns=True):
     return ((win_loss_ratio * win_prob) - lose_prob) / win_loss_ratio
 
 
+def prepare_benchmark(benchmark=None, period="max", rf=0.0, is_prepare_returns=True):
+    """
+    Fetch benchmark if ticker is provided, and pass through
+    _prepare_returns()
+
+    period can be options or (expected) _pd.DatetimeIndex range
+    """
+    if benchmark is None:
+        return None
+
+    elif isinstance(benchmark, pd.DataFrame):
+        benchmark = benchmark[benchmark.columns[0]].copy()
+
+    if isinstance(period, pd.DatetimeIndex) and set(period) != set(benchmark.index):
+
+        # Adjust Benchmark to Strategy frequency
+        benchmark_prices = to_prices(benchmark, base=1)
+        new_index = pd.date_range(start=period[0], end=period[-1], freq="D")
+        benchmark = (
+            benchmark_prices.reindex(new_index, method="bfill")
+            .reindex(period)
+            .pct_change()
+            .fillna(0)
+        )
+        benchmark = benchmark[benchmark.index.isin(period)]
+
+    benchmark.index = benchmark.index.tz_localize(None)
+
+    if is_prepare_returns:
+        return prepare_returns(benchmark.dropna(), rf=rf)
+    return benchmark.dropna()
+
+
+def r_squared(returns, benchmark, is_prepare_returns=True):
+    """Measures the straight line fit of the equity curve"""
+    if prepare_returns:
+        returns = prepare_returns(returns)
+    _, _, r_val, _, _ = linregress(returns, prepare_benchmark(benchmark, returns.index))
+    return r_val**2
+
+
+def information_ratio(returns, benchmark, is_prepare_returns=True):
+    """
+    Calculates the information ratio
+    (basically the risk return ratio of the net profits)
+    """
+    if is_prepare_returns:
+        returns = prepare_returns(returns)
+    diff_rets = returns - prepare_benchmark(benchmark, returns.index)
+
+    return diff_rets.mean() / diff_rets.std()
+
+
+def greeks(returns, benchmark, periods=252.0, is_prepare_returns=True):
+    """Calculates alpha and beta of the portfolio"""
+    # ----------------------------
+    # data cleanup
+    if is_prepare_returns:
+        returns = prepare_returns(returns)
+    benchmark = prepare_benchmark(benchmark, returns.index)
+    # ----------------------------
+
+    # find covariance
+    matrix = np.cov(returns, benchmark)
+    beta = matrix[0, 1] / matrix[1, 1]
+
+    # calculates measures now
+    alpha = returns.mean() - beta * benchmark.mean()
+    alpha = alpha * periods
+
+    return pd.Series(
+        {
+            "beta": beta,
+            "alpha": alpha
+        }
+    ).fillna(0)
+
+
+def treynor_ratio(returns, benchmark, periods=252.0, rf=0.0):
+    """
+    Calculates the Treynor ratio
+
+    Args:
+        * returns (Series, DataFrame): Input return series
+        * benchmatk (String, Series, DataFrame): Benchmark to compare beta to
+        * periods (int): Freq. of returns (252/365 for daily, 12 for monthly)
+    """
+    if isinstance(returns, pd.DataFrame):
+        returns = returns[returns.columns[0]]
+
+    beta = greeks(returns, benchmark, periods=periods).to_dict().get("beta", 0)
+    if beta == 0:
+        return 0
+    return (comp(returns) - rf) / beta
+
+
+def rolling_greeks(returns, benchmark, periods=252, is_prepare_returns=True):
+    """Calculates rolling alpha and beta of the portfolio"""
+    if is_prepare_returns:
+        returns = prepare_returns(returns)
+    df = pd.DataFrame(
+        data={
+            "returns": returns,
+            "benchmark": prepare_benchmark(benchmark, returns.index),
+        }
+    )
+    df = df.fillna(0)
+    corr = df.rolling(int(periods)).corr().unstack()["returns"]["benchmark"]
+    std = df.rolling(int(periods)).std()
+    beta = corr * std["returns"] / std["benchmark"]
+
+    alpha = df["returns"].mean() - beta * df["benchmark"].mean()
+
+    return pd.DataFrame(index=returns.index, data={"beta": beta, "alpha": alpha})
+
+
 def extend_pandas():
     PandasObject.compsum = compsum
     PandasObject.comp = comp
@@ -1068,3 +1184,9 @@ def extend_pandas():
     PandasObject.aggregate_returns = aggregate_returns
     PandasObject.to_excess_returns = to_excess_returns
     PandasObject.multi_shift = utils.multi_shift
+
+    PandasObject.r_squared = r_squared
+    PandasObject.information_ratio = information_ratio
+    PandasObject.greeks = greeks
+    PandasObject.rolling_greeks = rolling_greeks
+    PandasObject.treynor_ratio = treynor_ratio
