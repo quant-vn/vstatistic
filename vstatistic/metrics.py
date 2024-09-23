@@ -125,29 +125,30 @@ class Metrics:
         compounded=True,
         periods_per_year=252
     ):
+        returns = self.__returns
         win_year, _ = utils.get_trading_periods(periods_per_year)
         benchmark_colname = "Benchmark"
         strategy_colname = "Strategy"
-        if isinstance(self.__returns, pd.DataFrame):
-            if len(self.__returns.columns) > 1:
-                blank = [""] * len(self.__returns.columns)
+        if isinstance(returns, pd.DataFrame):
+            if len(returns.columns) > 1:
+                blank = [""] * len(returns.columns)
                 if isinstance(strategy_colname, str):
-                    strategy_colname = list(self.__returns.columns)
+                    strategy_colname = list(returns.columns)
         else:
             blank = [""]
-        df = core.prepare_returns(self.__returns)
-        if isinstance(self.__returns, pd.Series):
-            df = pd.DataFrame({"returns": self.__returns})
-        elif isinstance(self.__returns, pd.DataFrame):
+        df = core.prepare_returns(returns)
+        if isinstance(returns, pd.Series):
+            df = pd.DataFrame({"returns": returns})
+        elif isinstance(returns, pd.DataFrame):
             df = pd.DataFrame(
                 {
-                    "returns_" + str(i + 1): self.__returns[strategy_col]
-                    for i, strategy_col in enumerate(self.__returns.columns)
+                    "returns_" + str(i + 1): returns[strategy_col]
+                    for i, strategy_col in enumerate(returns.columns)
                 }
             )
-        if self.__benchmark is not None:
+        if self.__benchmark:
             benchmark = self.__benchmark.get("SPY")
-            returns, benchmark = utils.match_dates(self.__returns, benchmark)
+            returns, benchmark = utils.match_dates(returns, benchmark)
             df["benchmark"] = benchmark
             if isinstance(returns, pd.Series):
                 blank = ["", ""]
