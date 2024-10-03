@@ -1110,6 +1110,103 @@ def rolling_greeks(returns, benchmark, periods=252, is_prepare_returns=True):
     return pd.DataFrame(index=returns.index, data={"beta": beta, "alpha": alpha})
 
 
+def make_portfolio(returns, start_balance=1e5, mode="comp", round_to=None):
+    """Calculates compounded value of portfolio"""
+    returns = prepare_returns(returns)
+
+    if mode.lower() in ["cumsum", "sum"]:
+        p1 = start_balance + start_balance * returns.cumsum()
+    elif mode.lower() in ["compsum", "comp"]:
+        p1 = to_prices(returns, start_balance)
+    else:
+        # fixed amount every day
+        comp_rev = (start_balance + start_balance * returns.shift(1)).fillna(
+            start_balance
+        ) * returns
+        p1 = start_balance + comp_rev.cumsum()
+
+    # add day before with starting balance
+    p0 = pd.Series(data=start_balance, index=p1.index + pd.Timedelta(days=-1))[:1]
+
+    portfolio = pd.concat([p0, p1])
+
+    if isinstance(returns, pd.DataFrame):
+        portfolio.iloc[:1, :] = start_balance
+        portfolio.drop(columns=[0], inplace=True)
+
+    if round_to:
+        portfolio = np.round(portfolio, round_to)
+
+    return portfolio
+
+
+def monthly_returns(returns, eoy=True, compounded=True, is_prepare_returns=True):
+    """Calculates monthly returns"""
+    if is_prepare_returns:
+        returns = prepare_returns(returns)
+    original_returns = returns.copy()
+
+    returns = pd.DataFrame(
+        group_returns(returns, returns.index.strftime("%Y-%m-01"), compounded)
+    )
+
+    returns.columns = ["Returns"]
+    returns.index = pd.to_datetime(returns.index)
+
+    # get returnsframe
+    returns["Year"] = returns.index.strftime("%Y")
+    returns["Month"] = returns.index.strftime("%b")
+
+    # make pivot table
+    returns = returns.pivot(index="Year", columns="Month", values="Returns").fillna(0)
+
+    # handle missing months
+    for month in [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ]:
+        if month not in returns.columns:
+            returns.loc[:, month] = 0
+
+    # order columns by month
+    returns = returns[
+        [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ]
+    ]
+
+    if eoy:
+        returns["eoy"] = group_returns(
+            original_returns, original_returns.index.year, compounded=compounded
+        ).values
+
+    returns.columns = map(lambda x: str(x).upper(), returns.columns)
+    returns.index.name = None
+
+    return returns
+
+
 def extend_pandas():
     PandasObject.compsum = compsum
     PandasObject.comp = comp

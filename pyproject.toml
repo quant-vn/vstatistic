@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vstatistic"
-version = "0.1.6"
+version = "0.1.7"
 license = "MIT"
 description = "vStatistic: A Portfolio analytics for quants"
 repository = "https://github.com/quant-vn/vstatistic"
