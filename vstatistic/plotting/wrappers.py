@@ -361,7 +361,6 @@ def earnings(
 def returns(
     returns,
     benchmark=None,
-    grayscale=False,
     figsize=(10, 6),
     fontname="Arial",
     lw=1.5,
@@ -376,20 +375,17 @@ def returns(
     is_prepare_returns=True,
 ):
 
-    title = "Cumulative Returns" if compound else "Returns"
-    if benchmark is not None:
-        if isinstance(benchmark, str):
-            title += " vs %s" % benchmark.upper()
-        else:
-            title += " vs Benchmark"
+    title = "Cumulative " if compound else "Returns"
+    _benchmarks = list(benchmark.keys())
+    if _benchmarks:
+        if _benchmarks:
+            title += "Returns vs " + ", ".join(_benchmarks)
         if match_volatility:
             title += " (Volatility Matched)"
-
-        benchmark = core.prepare_benchmark(benchmark, returns.index)
-
+    for _b in _benchmarks:
+        benchmark[_b] = core.prepare_benchmark(benchmark.get(_b), returns.index)
     if is_prepare_returns:
         returns = core.prepare_returns(returns)
-
     fig = _core.plot_timeseries(
         returns,
         benchmark,
@@ -403,7 +399,6 @@ def returns(
         lw=lw,
         figsize=figsize,
         fontname=fontname,
-        grayscale=grayscale,
         subtitle=subtitle,
         savefig=savefig,
         show=show,
@@ -415,7 +410,6 @@ def returns(
 def log_returns(
     returns,
     benchmark=None,
-    grayscale=False,
     figsize=(10, 5),
     fontname="Arial",
     lw=1.5,
@@ -430,23 +424,21 @@ def log_returns(
     is_prepare_returns=True,
 ):
 
-    title = "Cumulative Returns" if compound else "Returns"
-    if benchmark is not None:
-        if isinstance(benchmark, str):
-            title += " vs %s (Log Scaled" % benchmark.upper()
-        else:
-            title += " vs Benchmark (Log Scaled"
+    title = "Cumulative " if compound else "Returns"
+    _benchmarks = list(benchmark.keys())
+    if _benchmarks:
+        title += "Returns vs " + ", ".join(_benchmarks) + " (Log Scaled"
         if match_volatility:
-            title += ", Volatility Matched"
+            title += ", Volatility Matched)"
+        else:
+            title += ")"
     else:
-        title += " (Log Scaled"
-    title += ")"
+        title += " (Log Scaled)"
+    for _b in _benchmarks:
+        benchmark[_b] = core.prepare_benchmark(benchmark.get(_b), returns.index)
 
     if is_prepare_returns:
         returns = core.prepare_returns(returns)
-
-    benchmark = core.prepare_benchmark(benchmark, returns.index)
-
     fig = _core.plot_timeseries(
         returns,
         benchmark,
@@ -460,7 +452,6 @@ def log_returns(
         lw=lw,
         figsize=figsize,
         fontname=fontname,
-        grayscale=grayscale,
         subtitle=subtitle,
         savefig=savefig,
         show=show,
@@ -472,7 +463,6 @@ def log_returns(
 def daily_returns(
     returns,
     benchmark,
-    grayscale=False,
     figsize=(10, 4),
     fontname="Arial",
     lw=0.5,
@@ -505,7 +495,6 @@ def daily_returns(
         lw=lw,
         figsize=figsize,
         fontname=fontname,
-        grayscale=grayscale,
         subtitle=subtitle,
         savefig=savefig,
         show=show,
@@ -518,7 +507,6 @@ def yearly_returns(
     returns,
     benchmark=None,
     fontname="Arial",
-    grayscale=False,
     hlw=1.5,
     hlcolor="red",
     hllabel="",
@@ -533,16 +521,17 @@ def yearly_returns(
     is_prepare_returns=True,
 ):
 
-    title = "EOY Returns"
-    if benchmark is not None:
-        title += "  vs Benchmark"
-        benchmark = (
-            core.prepare_benchmark(benchmark, returns.index)
-            .resample(YEAR_END)
-            .apply(core.comp)
-            .resample(YEAR_END)
-            .last()
-        )
+    title = "EOY Returns "
+    _benchmarks = list(benchmark.keys())
+    if _benchmarks:
+        title += ", ".join(_benchmarks)
+        for _b in _benchmarks:
+            benchmark[_b] = (
+                core.prepare_benchmark(benchmark.get(_b), returns.index)
+                .resample(YEAR_END)
+                .apply(core.comp)
+                .resample(YEAR_END).last()
+            )
 
     if is_prepare_returns:
         returns = core.prepare_returns(returns)
@@ -566,7 +555,6 @@ def yearly_returns(
         resample=None,
         title=title,
         figsize=figsize,
-        grayscale=grayscale,
         ylabel=ylabel,
         subtitle=subtitle,
         savefig=savefig,
@@ -579,7 +567,6 @@ def yearly_returns(
 def distribution(
     returns,
     fontname="Arial",
-    grayscale=False,
     ylabel=True,
     figsize=(10, 6),
     subtitle=True,
@@ -595,7 +582,6 @@ def distribution(
     fig = _core.plot_distribution(
         returns,
         fontname=fontname,
-        grayscale=grayscale,
         figsize=figsize,
         ylabel=ylabel,
         subtitle=subtitle,
@@ -613,7 +599,6 @@ def histogram(
     benchmark=None,
     resample=MONTH_END,
     fontname="Arial",
-    grayscale=False,
     figsize=(10, 5),
     ylabel=True,
     subtitle=True,
@@ -643,7 +628,6 @@ def histogram(
         returns,
         benchmark,
         resample=resample,
-        grayscale=grayscale,
         fontname=fontname,
         title="Distribution of %sReturns" % title,
         figsize=figsize,
@@ -657,7 +641,6 @@ def histogram(
 
 def drawdown(
     returns,
-    grayscale=False,
     figsize=(10, 5),
     fontname="Arial",
     lw=1,
@@ -689,7 +672,6 @@ def drawdown(
         figsize=figsize,
         ylabel=ylabel,
         fontname=fontname,
-        grayscale=grayscale,
         subtitle=subtitle,
         savefig=savefig,
         show=show,
@@ -704,7 +686,6 @@ def drawdowns_periods(
     lw=1.5,
     log_scale=False,
     fontname="Arial",
-    grayscale=False,
     title=None,
     figsize=(10, 5),
     ylabel=True,
@@ -723,7 +704,6 @@ def drawdowns_periods(
         lw=lw,
         log_scale=log_scale,
         fontname=fontname,
-        grayscale=grayscale,
         title=title,
         figsize=figsize,
         ylabel=ylabel,
@@ -745,7 +725,6 @@ def rolling_beta(
     window2_label="12-Months",
     lw=1.5,
     fontname="Arial",
-    grayscale=False,
     figsize=(10, 3),
     ylabel=True,
     subtitle=True,
@@ -768,7 +747,6 @@ def rolling_beta(
         window2_label=window2_label,
         title="Rolling Beta to Benchmark",
         fontname=fontname,
-        grayscale=grayscale,
         lw=lw,
         figsize=figsize,
         ylabel=ylabel,
@@ -788,7 +766,6 @@ def rolling_volatility(
     periods_per_year=252,
     lw=1.5,
     fontname="Arial",
-    grayscale=False,
     figsize=(10, 3),
     ylabel="Volatility",
     subtitle=True,
@@ -812,7 +789,6 @@ def rolling_volatility(
         ylabel=ylabel,
         title="Rolling Volatility (%s)" % period_label,
         fontname=fontname,
-        grayscale=grayscale,
         lw=lw,
         figsize=figsize,
         subtitle=subtitle,
@@ -832,7 +808,6 @@ def rolling_sharpe(
     periods_per_year=252,
     lw=1.25,
     fontname="Arial",
-    grayscale=False,
     figsize=(10, 3),
     ylabel="Sharpe",
     subtitle=True,
@@ -862,7 +837,6 @@ def rolling_sharpe(
         ylabel=ylabel,
         title="Rolling Sharpe (%s)" % period_label,
         fontname=fontname,
-        grayscale=grayscale,
         lw=lw,
         figsize=figsize,
         subtitle=subtitle,
@@ -882,7 +856,6 @@ def rolling_sortino(
     periods_per_year=252,
     lw=1.25,
     fontname="Arial",
-    grayscale=False,
     figsize=(10, 3),
     ylabel="Sortino",
     subtitle=True,
@@ -906,7 +879,6 @@ def rolling_sortino(
         ylabel=ylabel,
         title="Rolling Sortino (%s)" % period_label,
         fontname=fontname,
-        grayscale=grayscale,
         lw=lw,
         figsize=figsize,
         subtitle=subtitle,
@@ -927,7 +899,6 @@ def monthly_heatmap(
     returns_label="Strategy",
     compounded=True,
     eoy=False,
-    grayscale=False,
     fontname="Arial",
     ylabel=True,
     savefig=None,
@@ -935,7 +906,7 @@ def monthly_heatmap(
     active=False,
 ):
     # colors, ls, alpha = _core._get_colors(grayscale)
-    cmap = "gray" if grayscale else "RdYlGn"
+    cmap = "RdYlGn"
 
     returns = core.monthly_returns(returns, eoy=eoy, compounded=compounded) * 100
 
@@ -1054,7 +1025,6 @@ def monthly_returns(
     square=False,
     compounded=True,
     eoy=False,
-    grayscale=False,
     fontname="Arial",
     ylabel=True,
     savefig=None,
@@ -1068,7 +1038,6 @@ def monthly_returns(
         square=square,
         compounded=compounded,
         eoy=eoy,
-        grayscale=grayscale,
         fontname=fontname,
         ylabel=ylabel,
         savefig=savefig,

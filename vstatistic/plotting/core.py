@@ -82,14 +82,10 @@ _GRAYSCALE_COLORS = [
 ]
 
 
-def _get_colors(grayscale):
+def _get_colors():
     colors = _FLATUI_COLORS
     ls = "-"
     alpha = 0.8
-    if grayscale:
-        colors = _GRAYSCALE_COLORS
-        ls = "-"
-        alpha = 0.5
     return colors, ls, alpha
 
 
@@ -106,35 +102,41 @@ def plot_returns_bars(
     match_volatility=False,
     log_scale=False,
     figsize=(10, 6),
-    grayscale=False,
     fontname="Arial",
     ylabel=True,
     subtitle=True,
     savefig=None,
     show=True,
 ):
-
     if match_volatility and benchmark is None:
         raise ValueError("match_volatility requires passing of " "benchmark.")
+    _is_calculated: bool = False
     if match_volatility and benchmark is not None:
-        bmark_vol = benchmark.loc[returns.index].std()
-        returns = (returns / returns.std()) * bmark_vol
+        for _b in benchmark:
+            _benchmark = benchmark.get(_b)
+            bmark_vol = _benchmark.loc[returns.index].std()
+            if not _is_calculated:
+                returns = (returns / returns.std()) * bmark_vol
 
     # ---------------
-    colors, _, _ = _get_colors(grayscale)
+    colors, _, _ = _get_colors()
     if isinstance(returns, _pd.Series):
         df = _pd.DataFrame(index=returns.index, data={returns.name: returns})
     elif isinstance(returns, _pd.DataFrame):
         df = _pd.DataFrame(
             index=returns.index, data={col: returns[col] for col in returns.columns}
         )
-    if isinstance(benchmark, _pd.Series):
-        df[benchmark.name] = benchmark[benchmark.index.isin(returns.index)]
-        if isinstance(returns, _pd.Series):
-            df = df[[benchmark.name, returns.name]]
-        elif isinstance(returns, _pd.DataFrame):
-            col_names = [benchmark.name, returns.columns]
-            df = df[list(_pd.core.common.flatten(col_names))]
+    # if isinstance(benchmark, _pd.Series):
+    #     df[benchmark.name] = benchmark[benchmark.index.isin(returns.index)]
+    #     if isinstance(returns, _pd.Series):
+    #         df = df[[benchmark.name, returns.name]]
+    #     elif isinstance(returns, _pd.DataFrame):
+    #         col_names = [benchmark.name, returns.columns]
+    #         df = df[list(_pd.core.common.flatten(col_names))]
+    for _b in benchmark:
+        _benchmark = benchmark.get(_b)
+        df[_b] = _benchmark[_benchmark.index.isin(returns.index)]
+    df = df[[returns.name] + list(benchmark.keys())]
 
     df = df.dropna()
     if resample is not None:
@@ -191,8 +193,6 @@ def plot_returns_bars(
 
     if hline is not None:
         if not isinstance(hline, _pd.Series):
-            if grayscale:
-                hlcolor = "gray"
             ax.axhline(hline, ls="--", lw=hlw, color=hlcolor, label=hllabel, zorder=2)
 
     ax.axhline(0, ls="--", lw=1, color="#000000", zorder=2)
@@ -260,44 +260,49 @@ def plot_timeseries(
     lw=1.5,
     figsize=(10, 6),
     ylabel="",
-    grayscale=False,
     fontname="Arial",
     subtitle=True,
     savefig=None,
     show=True,
 ):
-
-    colors, ls, alpha = _get_colors(grayscale)
-
+    colors, ls, alpha = _get_colors()
     returns.fillna(0, inplace=True)
-    if isinstance(benchmark, _pd.Series):
-        benchmark.fillna(0, inplace=True)
+    _is_calculated: bool = False
+    if benchmark:
+        for _b in benchmark:
+            _benchmark = benchmark.get(_b)
+            if isinstance(_benchmark, _pd.Series):
+                _benchmark.fillna(0, inplace=True)
 
-    if match_volatility and benchmark is None:
-        raise ValueError("match_volatility requires passing of " "benchmark.")
-    if match_volatility and benchmark is not None:
-        bmark_vol = benchmark.std()
-        returns = (returns / returns.std()) * bmark_vol
+            if match_volatility and _benchmark is None:
+                raise ValueError("match_volatility requires passing of " "benchmark.")
+            if match_volatility and _benchmark is not None:
+                bmark_vol = _benchmark.std()
+                if not _is_calculated:
+                    returns = (returns / returns.std()) * bmark_vol
+            # ---------------
+            if compound is True:
+                if cumulative:
+                    if not _is_calculated:
+                        returns = core.compsum(returns)
+                    if isinstance(_benchmark, _pd.Series):
+                        _benchmark = core.compsum(_benchmark)
+                else:
+                    if not _is_calculated:
+                        returns = returns.cumsum()
+                    if isinstance(_benchmark, _pd.Series):
+                        _benchmark = _benchmark.cumsum()
 
-    # ---------------
-    if compound is True:
-        if cumulative:
-            returns = core.compsum(returns)
-            if isinstance(benchmark, _pd.Series):
-                benchmark = core.compsum(benchmark)
-        else:
-            returns = returns.cumsum()
-            if isinstance(benchmark, _pd.Series):
-                benchmark = benchmark.cumsum()
-
-    if resample:
-        returns = returns.resample(resample)
-        returns = returns.last() if compound is True else returns.sum()
-        if isinstance(benchmark, _pd.Series):
-            benchmark = benchmark.resample(resample)
-            benchmark = benchmark.last() if compound is True else benchmark.sum()
-    # ---------------
-
+            if resample:
+                if not _is_calculated:
+                    returns = returns.resample(resample)
+                    returns = returns.last() if compound is True else returns.sum()
+                if isinstance(_benchmark, _pd.Series):
+                    _benchmark = _benchmark.resample(resample)
+                    _benchmark = _benchmark.last() if compound is True else _benchmark.sum()
+            # ---------------
+            benchmark[_b] = _benchmark
+            _is_calculated = True
     fig, ax = _plt.subplots(figsize=figsize)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -321,13 +326,17 @@ def plot_timeseries(
 
     fig.set_facecolor("white")
     ax.set_facecolor("white")
+    _i: int = 1
+    if benchmark:
+        for _b in benchmark:
+            _benchmark = benchmark.get(_b)
+            if isinstance(_benchmark, _pd.Series):
+                ax.plot(_benchmark, lw=lw, ls=ls, label=_b, color=colors[_i])
+                _i += 1
 
-    if isinstance(benchmark, _pd.Series):
-        ax.plot(benchmark, lw=lw, ls=ls, label=benchmark.name, color=colors[0])
-
-    alpha = 0.25 if grayscale else 1
+    alpha = 1
     if isinstance(returns, _pd.Series):
-        ax.plot(returns, lw=lw, label=returns.name, color=colors[1], alpha=alpha)
+        ax.plot(returns, lw=lw, label=returns.name, color=colors[0], alpha=alpha)
     elif isinstance(returns, _pd.DataFrame):
         # color_dict = {col: colors[i+1] for i, col in enumerate(returns.columns)}
         for i, col in enumerate(returns.columns):
@@ -335,7 +344,7 @@ def plot_timeseries(
 
     if fill:
         if isinstance(returns, _pd.Series):
-            ax.fill_between(returns.index, 0, returns, color=colors[1], alpha=0.25)
+            ax.fill_between(returns.index, 0, returns, color=colors[0], alpha=0.25)
         elif isinstance(returns, _pd.DataFrame):
             for i, col in enumerate(returns.columns):
                 ax.fill_between(
@@ -350,12 +359,10 @@ def plot_timeseries(
 
     if hline is not None:
         if not isinstance(hline, _pd.Series):
-            if grayscale:
-                hlcolor = "black"
             ax.axhline(hline, ls="--", lw=hlw, color=hlcolor, label=hllabel, zorder=2)
 
     ax.axhline(0, ls="-", lw=1, color="gray", zorder=1)
-    ax.axhline(0, ls="--", lw=1, color="white" if grayscale else "black", zorder=2)
+    ax.axhline(0, ls="--", lw=1, color="black", zorder=2)
 
     # if isinstance(benchmark, _pd.Series) or hline is not None:
     ax.legend(fontsize=11)
@@ -410,7 +417,6 @@ def plot_histogram(
     resample=MONTH_END,
     bins=20,
     fontname="Arial",
-    grayscale=False,
     title="Returns",
     kde=True,
     figsize=(10, 6),
@@ -420,12 +426,7 @@ def plot_histogram(
     savefig=None,
     show=True,
 ):
-
-    # colors = ['#348dc1', '#003366', 'red']
-    # if grayscale:
-    #     colors = ['silver', 'gray', 'black']
-
-    colors, _, _ = _get_colors(grayscale)
+    colors, _, _ = _get_colors()
 
     apply_fnc = core.comp if compounded else _np.sum
     if benchmark is not None:
@@ -611,14 +612,13 @@ def plot_rolling_stats(
     lw=1.5,
     figsize=(10, 6),
     ylabel="",
-    grayscale=False,
     fontname="Arial",
     subtitle=True,
     savefig=None,
     show=True,
 ):
 
-    colors, _, _ = _get_colors(grayscale)
+    colors, _, _ = _get_colors()
 
     fig, ax = _plt.subplots(figsize=figsize)
     ax.spines["top"].set_visible(False)
@@ -654,7 +654,7 @@ def plot_rolling_stats(
         if isinstance(returns, _pd.Series):
             df = df[[returns_label]].dropna()
             ax.plot(
-                df[returns_label].dropna(), lw=lw, label=returns.name, color=colors[1]
+                df[returns_label].dropna(), lw=lw, label=returns.name, color=colors[0]
             )
         elif isinstance(returns, _pd.DataFrame):
             df = df[returns_label].dropna()
@@ -683,8 +683,6 @@ def plot_rolling_stats(
 
     if hline is not None:
         if not isinstance(hline, _pd.Series):
-            if grayscale:
-                hlcolor = "black"
             ax.axhline(hline, ls="--", lw=hlw, color=hlcolor, label=hllabel, zorder=2)
 
     ax.axhline(0, ls="--", lw=1, color="#000000", zorder=2)
@@ -738,7 +736,6 @@ def plot_rolling_beta(
     title="",
     hlcolor="red",
     figsize=(10, 6),
-    grayscale=False,
     fontname="Arial",
     lw=1.5,
     ylabel=True,
@@ -747,7 +744,7 @@ def plot_rolling_beta(
     show=True,
 ):
 
-    colors, _, _ = _get_colors(grayscale)
+    colors, _, _ = _get_colors()
 
     fig, ax = _plt.subplots(figsize=figsize)
     ax.spines["top"].set_visible(False)
@@ -828,7 +825,6 @@ def plot_rolling_beta(
     ax.set_yticks([x / 100 for x in list(range(mmin, mmax, step))])
 
     if isinstance(returns, _pd.Series):
-        hlcolor = "black" if grayscale else hlcolor
         ax.axhline(beta.mean(), ls="--", lw=1.5, color=hlcolor, zorder=2)
 
     ax.axhline(0, ls="--", lw=1, color="#000000", zorder=2)
@@ -880,7 +876,6 @@ def plot_longest_drawdowns(
     periods=5,
     lw=1.5,
     fontname="Arial",
-    grayscale=False,
     title=None,
     log_scale=False,
     figsize=(10, 6),
@@ -891,10 +886,7 @@ def plot_longest_drawdowns(
     show=True,
 ):
 
-    colors = ["#348dc1", "#003366", "red"]
-    if grayscale:
-        colors = ["#000000"] * 3
-
+    colors, _, _ = _get_colors()
     dd = core.to_drawdown_series(returns.fillna(0))
     dddf = core.drawdown_details(dd)
     longest_dd = dddf.sort_values(by="days", ascending=False, kind="mergesort")[
@@ -931,7 +923,7 @@ def plot_longest_drawdowns(
     series = core.compsum(returns) if compounded else returns.cumsum()
     ax.plot(series, lw=lw, label="Backtest", color=colors[0])
 
-    highlight = "black" if grayscale else "red"
+    highlight = "red"
     for _, row in longest_dd.iterrows():
         ax.axvspan(
             *_mdates.datestr2num([str(row["start"]), str(row["end"])]),
@@ -994,7 +986,6 @@ def plot_distribution(
     returns,
     figsize=(10, 6),
     fontname="Arial",
-    grayscale=False,
     ylabel=True,
     subtitle=True,
     compounded=True,
@@ -1004,9 +995,6 @@ def plot_distribution(
 ):
 
     colors = _FLATUI_COLORS
-    if grayscale:
-        colors = ["#f9f9f9", "#dddddd", "#bbbbbb", "#999999", "#808080"]
-    # colors, ls, alpha = _get_colors(grayscale)
 
     port = _pd.DataFrame(returns.fillna(0))
     port.columns = ["Daily"]

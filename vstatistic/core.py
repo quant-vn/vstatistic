@@ -1006,9 +1006,7 @@ def prepare_benchmark(benchmark=None, period="max", rf=0.0, is_prepare_returns=T
 
     elif isinstance(benchmark, pd.DataFrame):
         benchmark = benchmark[benchmark.columns[0]].copy()
-
     if isinstance(period, pd.DatetimeIndex) and set(period) != set(benchmark.index):
-
         # Adjust Benchmark to Strategy frequency
         benchmark_prices = to_prices(benchmark, base=1)
         new_index = pd.date_range(start=period[0], end=period[-1], freq="D")

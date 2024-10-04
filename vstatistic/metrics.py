@@ -29,6 +29,7 @@ class Metrics:
         self.__benchmark: dict = {}
         self.__orderbook: pd.DataFrame = None
         self.__transaction: pd.DataFrame = None
+        self.__trigger: pd.DataFrame = None
 
     @property
     def returns(self) -> pd.Series:
@@ -58,6 +59,14 @@ class Metrics:
     @transaction.setter
     def transaction(self, value: pd.DataFrame):
         self.__transaction = value
+
+    @property
+    def trigger(self) -> pd.DataFrame:
+        return self.__trigger
+
+    @trigger.setter
+    def trigger(self, value: pd.DataFrame):
+        self.__trigger = value
 
     def calc_dd(self, df, display=True, as_pct=False):
         dd = core.to_drawdown_series(df)
@@ -151,7 +160,7 @@ class Metrics:
         returns = self.__returns
         win_year, _ = utils.get_trading_periods(periods_per_year)
         benchmark_colname = "Benchmark"
-        strategy_colname = "Strategy"
+        strategy_colname = "Returns"
         if isinstance(returns, pd.DataFrame):
             if len(returns.columns) > 1:
                 blank = [""] * len(returns.columns)
@@ -170,7 +179,9 @@ class Metrics:
                 }
             )
         if self.__benchmark:
-            benchmark = self.__benchmark.get("SPY")
+            _benchmarks = list(self.__benchmark.keys())
+            benchmark_colname = _benchmarks[0]
+            benchmark = self.__benchmark.get(benchmark_colname)
             returns, benchmark = utils.match_dates(returns, benchmark)
             df["benchmark"] = benchmark
             if isinstance(returns, pd.Series):
@@ -559,7 +570,7 @@ class Metrics:
 
         date_range = self.__returns.index.strftime("%e %b, %Y")
         tpl = tpl.replace("{{date_range}}", date_range[0] + " - " + date_range[-1])
-        tpl = tpl.replace("{{title}}", "Statistic Report")
+        tpl = tpl.replace("{{title}}", "Statistic")
         _m = self.metrics()
         print(_m)
         _m.index.name = "Metric"
@@ -590,12 +601,14 @@ class Metrics:
         # orderbook
         tpl = tpl.replace("{{orderbook}}", self.html_table(self.__orderbook, False))
         # transaction
+        tpl = tpl.replace("{{transaction}}", self.html_table(self.__transaction, False))
+        # trigger
+        tpl = tpl.replace("{{trigger}}", self.html_table(self.__trigger, False))
         # plots
         figfile = utils.file_stream()
         plot.returns(
             self.__returns,
-            self.__benchmark.get("SPY"),
-            grayscale=False,
+            self.__benchmark.copy(),
             figsize=(8, 5),
             subtitle=False,
             savefig={"fname": figfile, "format": "svg"},
@@ -609,8 +622,7 @@ class Metrics:
         figfile = utils.file_stream()
         plot.log_returns(
             self.__returns,
-            self.__benchmark.get("SPY"),
-            grayscale=False,
+            self.__benchmark.copy(),
             figsize=(8, 4),
             subtitle=False,
             savefig={"fname": figfile, "format": "svg"},
@@ -624,9 +636,8 @@ class Metrics:
         figfile = utils.file_stream()
         plot.returns(
             self.__returns,
-            self.__benchmark.get("SPY"),
+            self.__benchmark.copy(),
             match_volatility=True,
-            grayscale=False,
             figsize=(8, 4),
             subtitle=False,
             savefig={"fname": figfile, "format": "svg"},
@@ -640,8 +651,7 @@ class Metrics:
         figfile = utils.file_stream()
         plot.yearly_returns(
             self.__returns,
-            self.__benchmark.get("SPY"),
-            grayscale=False,
+            self.__benchmark.copy(),
             figsize=(8, 4),
             subtitle=False,
             savefig={"fname": figfile, "format": "svg"},
@@ -651,71 +661,67 @@ class Metrics:
             is_prepare_returns=False
         )
         tpl = tpl.replace("{{eoy_returns}}", utils.embed_figure(figfile, "svg"))
-        # histogram
+        # # histogram
+        # # figfile = utils.file_stream()
+        # # plot.histogram(
+        # #     self.__returns,
+        # #     self.__benchmark.get("SPY"),
+        # #     figsize=(7, 4),
+        # #     subtitle=False,
+        # #     savefig={"fname": figfile, "format": "svg"},
+        # #     show=False,
+        # #     ylabel=False,
+        # #     compounded=True,
+        # #     is_prepare_returns=False,
+        # # )
+        # # tpl = tpl.replace("{{monthly_dist}}", utils.embed_figure(figfile, "svg"))
+        # # daily return
         # figfile = utils.file_stream()
-        # plot.histogram(
+        # plot.daily_returns(
         #     self.__returns,
-        #     self.__benchmark.get("SPY"),
-        #     figsize=(7, 4),
+        #     self.__benchmark.copy(),
+        #     figsize=(8, 3),
         #     subtitle=False,
         #     savefig={"fname": figfile, "format": "svg"},
         #     show=False,
         #     ylabel=False,
-        #     compounded=True,
+        #     is_prepare_returns=False,
+        #     active=False
+        # )
+        # tpl = tpl.replace("{{daily_returns}}", utils.embed_figure(figfile, "svg"))
+        # # rolling beta
+        # figfile = utils.file_stream()
+        # plot.rolling_beta(
+        #     self.__returns,
+        #     self.__benchmark.get("SPY"),
+        #     figsize=(8, 3),
+        #     subtitle=False,
+        #     window1=win_half_year,
+        #     window2=win_year,
+        #     savefig={"fname": figfile, "format": "svg"},
+        #     show=False,
+        #     ylabel=False,
         #     is_prepare_returns=False,
         # )
-        # tpl = tpl.replace("{{monthly_dist}}", utils.embed_figure(figfile, "svg"))
-        # daily return
-        figfile = utils.file_stream()
-        plot.daily_returns(
-            self.__returns,
-            self.__benchmark.get("SPY"),
-            grayscale=False,
-            figsize=(8, 3),
-            subtitle=False,
-            savefig={"fname": figfile, "format": "svg"},
-            show=False,
-            ylabel=False,
-            is_prepare_returns=False,
-            active=False
-        )
-        tpl = tpl.replace("{{daily_returns}}", utils.embed_figure(figfile, "svg"))
-        # rolling beta
-        figfile = utils.file_stream()
-        plot.rolling_beta(
-            self.__returns,
-            self.__benchmark.get("SPY"),
-            grayscale=False,
-            figsize=(8, 3),
-            subtitle=False,
-            window1=win_half_year,
-            window2=win_year,
-            savefig={"fname": figfile, "format": "svg"},
-            show=False,
-            ylabel=False,
-            is_prepare_returns=False,
-        )
-        tpl = tpl.replace("{{rolling_beta}}", utils.embed_figure(figfile, "svg"))
-        # rolling vol
-        figfile = utils.file_stream()
-        plot.rolling_volatility(
-            self.__returns,
-            self.__benchmark.get("SPY"),
-            grayscale=False,
-            figsize=(8, 3),
-            subtitle=False,
-            savefig={"fname": figfile, "format": "svg"},
-            show=False,
-            ylabel=False,
-            period=win_half_year,
-            periods_per_year=win_year,
-        )
-        tpl = tpl.replace("{{rolling_vol}}", utils.embed_figure(figfile, "svg"))
+        # tpl = tpl.replace("{{rolling_beta}}", utils.embed_figure(figfile, "svg"))
+        # # rolling vol
+        # figfile = utils.file_stream()
+        # plot.rolling_volatility(
+        #     self.__returns,
+        #     self.__benchmark.get("SPY"),
+        #     figsize=(8, 3),
+        #     subtitle=False,
+        #     savefig={"fname": figfile, "format": "svg"},
+        #     show=False,
+        #     ylabel=False,
+        #     period=win_half_year,
+        #     periods_per_year=win_year,
+        # )
+        # tpl = tpl.replace("{{rolling_vol}}", utils.embed_figure(figfile, "svg"))
         # rolling sharpe
         figfile = utils.file_stream()
         plot.rolling_sharpe(
             self.__returns,
-            grayscale=False,
             figsize=(8, 3),
             subtitle=False,
             savefig={"fname": figfile, "format": "svg"},
@@ -729,7 +735,6 @@ class Metrics:
         figfile = utils.file_stream()
         plot.rolling_sortino(
             self.__returns,
-            grayscale=False,
             figsize=(8, 3),
             subtitle=False,
             savefig={"fname": figfile, "format": "svg"},
@@ -743,7 +748,6 @@ class Metrics:
         figfile = utils.file_stream()
         plot.drawdowns_periods(
             self.__returns,
-            grayscale=False,
             figsize=(8, 4),
             subtitle=False,
             title=self.__returns.name,
@@ -758,7 +762,6 @@ class Metrics:
         figfile = utils.file_stream()
         plot.drawdown(
             self.__returns,
-            grayscale=False,
             figsize=(8, 3),
             subtitle=False,
             savefig={"fname": figfile, "format": "svg"},
@@ -767,26 +770,24 @@ class Metrics:
         )
         tpl = tpl.replace("{{dd_plot}}", utils.embed_figure(figfile, "svg"))
 
-        figfile = utils.file_stream()
-        plot.monthly_heatmap(
-            self.__returns,
-            self.__benchmark.get("SPY"),
-            grayscale=False,
-            figsize=(8, 4),
-            cbar=False,
-            returns_label=self.__returns.name,
-            savefig={"fname": figfile, "format": "svg"},
-            show=False,
-            ylabel=False,
-            compounded=True,
-            active=False,
-        )
-        tpl = tpl.replace("{{monthly_heatmap}}", utils.embed_figure(figfile, "svg"))
+        # figfile = utils.file_stream()
+        # plot.monthly_heatmap(
+        #     self.__returns,
+        #     self.__benchmark.get("SPY"),
+        #     figsize=(8, 4),
+        #     cbar=False,
+        #     returns_label=self.__returns.name,
+        #     savefig={"fname": figfile, "format": "svg"},
+        #     show=False,
+        #     ylabel=False,
+        #     compounded=True,
+        #     active=False,
+        # )
+        # tpl = tpl.replace("{{monthly_heatmap}}", utils.embed_figure(figfile, "svg"))
 
         figfile = utils.file_stream()
         plot.distribution(
             self.__returns,
-            grayscale=False,
             figsize=(8, 4),
             subtitle=False,
             title=self.__returns.name,
