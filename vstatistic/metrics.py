@@ -160,7 +160,7 @@ class Metrics:
         returns = self.__returns
         win_year, _ = utils.get_trading_periods(periods_per_year)
         benchmark_colname = "Benchmark"
-        strategy_colname = "Returns"
+        strategy_colname = "Strategy"
         if isinstance(returns, pd.DataFrame):
             if len(returns.columns) > 1:
                 blank = [""] * len(returns.columns)
