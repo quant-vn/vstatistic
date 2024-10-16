@@ -82,7 +82,7 @@ class Metrics:
         gross_pnl_perc = gross_pnl / self.__start_balance
         fee = self.__transaction["total_fee"].sum()
         net_pnl = self.__transaction["net_pnl"].sum()
-        net_pnl_perc = self.__transaction["net_pnl_perc"]
+        net_pnl_perc = self.__transaction["net_pnl_perc"].sum()
         number_of_trade = self.__transaction["transaction_id"].nunique()
         win = self.__transaction[self.__transaction["net_pnl"] > 0]["transaction_id"].nunique()
         win_rate = win / number_of_trade
