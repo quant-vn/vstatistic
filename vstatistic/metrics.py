@@ -80,7 +80,7 @@ class Metrics:
     def summary(self):
         gross_pnl = self.__transaction["total_pnl_gross"].sum()
         gross_pnl_perc = gross_pnl / self.__start_balance
-        fee = self.__transaction["total_fee"].sum()
+        fee = self.__transaction["fee"].sum()
         net_pnl = self.__transaction["net_pnl"].sum()
         net_pnl_perc = self.__transaction["net_pnl_perc"].sum()
         number_of_trade = self.__transaction["transaction_id"].nunique()
@@ -613,7 +613,7 @@ class Metrics:
 
     def html_table(self, obj, showindex="default"):
         obj = tabulate(
-            obj, headers="keys", tablefmt="html", floatfmt=".2f", showindex=showindex
+            obj, headers="keys", tablefmt="html", floatfmt=".5f", showindex=showindex
         )
         obj = obj.replace(' style="text-align: right;"', "")
         obj = obj.replace(' style="text-align: left;"', "")
