@@ -45,7 +45,9 @@
         </div>
 
         <div id="right">
-            <h3>Metrics</h3>
+            <h3>Overview</h3>
+            {{summary}}
+            <h3>Performance Metrics</h3>
             {{metrics}}
 
             <div id="eoy">{{eoy_title}}
@@ -54,18 +56,6 @@
             <div id="ddinfo">
                 <h3>Worst 10 Drawdowns</h3>
                 {{dd_info}}
-            </div>
-            <div id="transaction">
-                <h3>Transaction</h3>
-                {{transaction}}
-            </div>
-            <div id="orderbook">
-                <h3>Orderbook</h3>
-                {{orderbook}}
-            </div>
-            <div id="trigger">
-                <h3>Trigger</h3>
-                {{trigger}}
             </div>
         </div>
 

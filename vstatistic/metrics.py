@@ -25,11 +25,28 @@ else:
 
 class Metrics:
     def __init__(self) -> None:
+        self.__start_balance: float = 0
+        self.__finish_balance: float = 0
         self.__returns: pd.Series = None
         self.__benchmark: dict = {}
-        self.__orderbook: pd.DataFrame = None
         self.__transaction: pd.DataFrame = None
         self.__trigger: pd.DataFrame = None
+
+    @property
+    def start_balance(self) -> float:
+        return self.__start_balance
+
+    @start_balance.setter
+    def start_balance(self, value: float):
+        self.__start_balance = value
+
+    @property
+    def finish_balance(self) -> float:
+        return self.__finish_balance
+
+    @finish_balance.setter
+    def finish_balance(self, value: float):
+        self.__finish_balance = value
 
     @property
     def returns(self) -> pd.Series:
@@ -43,14 +60,6 @@ class Metrics:
 
     def add_benchmark(self, benchmark: pd.Series, name: str):
         self.__benchmark[name] = benchmark
-
-    @property
-    def orderbook(self) -> pd.DataFrame:
-        return self.__orderbook
-
-    @orderbook.setter
-    def orderbook(self, value: pd.DataFrame):
-        self.__orderbook = value
 
     @property
     def transaction(self) -> pd.DataFrame:
@@ -67,6 +76,60 @@ class Metrics:
     @trigger.setter
     def trigger(self, value: pd.DataFrame):
         self.__trigger = value
+
+    def summary(self):
+        gross_pnl = self.__transaction["total_pnl_gross"].sum()
+        gross_pnl_perc = gross_pnl / self.__start_balance
+        fee = self.__transaction["total_fee"].sum()
+        net_pnl = self.__transaction["net_pnl"].sum()
+        net_pnl_perc = self.__transaction["net_pnl_perc"].sum()
+        number_of_trade = self.__transaction["transaction_id"].nunique()
+        win = self.__transaction[self.__transaction["net_pnl"] > 0]["transaction_id"].nunique()
+        win_rate = win / number_of_trade
+        loss = self.__transaction[self.__transaction["net_pnl"] < 0]["transaction_id"].nunique()
+        loss_rate = loss / number_of_trade
+        total_profit = self.__transaction[self.__transaction["net_pnl"] > 0]["net_pnl"].sum()
+        max_trade_profit = self.__transaction["net_pnl"].max()
+        max_trade_profit_perc = max_trade_profit / self.__start_balance
+        avg_profit = self.__transaction[self.__transaction["net_pnl"] > 0]["net_pnl"].mean()
+        avg_profit_perc = avg_profit / self.__start_balance
+        total_loss = self.__transaction[self.__transaction["net_pnl"] < 0]["net_pnl"].sum()
+        max_trade_loss = self.__transaction["net_pnl"].min()
+        max_trade_loss_perc = max_trade_loss / self.__start_balance
+        avg_loss = self.__transaction[self.__transaction["net_pnl"] < 0]["net_pnl"].mean()
+        avg_loss_perc = avg_loss / self.__start_balance
+        avg_net_pnl = self.__transaction["net_pnl"].mean()
+        avg_net_pnl_perc = avg_net_pnl / self.__start_balance
+
+        df_summary = pd.DataFrame.from_records([{
+            "initial_capital": self.__start_balance,
+            "ending_capital": self.__finish_balance,
+            "gross_pnl": gross_pnl,
+            "gross_pnl_perc": gross_pnl_perc,
+            "fee": fee,
+            "net_pnl": net_pnl,
+            "net_pnl_perc": net_pnl_perc,
+            "number_of_trade": number_of_trade,
+            "win": win,
+            "win_rate": win_rate,
+            "loss": loss,
+            "loss_rate": loss_rate,
+            "total_profit": total_profit,
+            "max_trade_profit": max_trade_profit,
+            "max_trade_profit_perc": max_trade_profit_perc,
+            "avg_profit": avg_profit,
+            "avg_profit_perc": avg_profit_perc,
+            "total_loss": total_loss,
+            "max_trade_loss": max_trade_loss,
+            "max_trade_loss_perc": max_trade_loss_perc,
+            "avg_loss": avg_loss,
+            "avg_loss_perc": avg_loss_perc,
+            "avg_net_pnl": avg_net_pnl,
+            "avg_net_pnl_perc": avg_net_pnl_perc
+        }])
+        df_summary = df_summary.T
+        df_summary.columns = ['Value']
+        return df_summary
 
     def calc_dd(self, df, display=True, as_pct=False):
         dd = core.to_drawdown_series(df)
@@ -571,8 +634,13 @@ class Metrics:
         date_range = self.__returns.index.strftime("%e %b, %Y")
         tpl = tpl.replace("{{date_range}}", date_range[0] + " - " + date_range[-1])
         tpl = tpl.replace("{{title}}", "Statistic")
+        # summary
+        _s = self.summary()
+        _s.index.name = "Summary"
+        tpl = tpl.replace("{{summary}}", self.html_table(_s))
+
+        # metric
         _m = self.metrics()
-        print(_m)
         _m.index.name = "Metric"
         tpl = tpl.replace("{{metrics}}", self.html_table(_m))
 
@@ -598,12 +666,6 @@ class Metrics:
         dd_info = dd_info[["start", "end", "max drawdown", "days"]]
         dd_info.columns = ["Started", "Recovered", "Drawdown", "Days"]
         tpl = tpl.replace("{{dd_info}}", self.html_table(dd_info, False))
-        # orderbook
-        tpl = tpl.replace("{{orderbook}}", self.html_table(self.__orderbook, False))
-        # transaction
-        tpl = tpl.replace("{{transaction}}", self.html_table(self.__transaction, False))
-        # trigger
-        tpl = tpl.replace("{{trigger}}", self.html_table(self.__trigger, False))
         # plots
         figfile = utils.file_stream()
         plot.returns(

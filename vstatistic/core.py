@@ -66,9 +66,9 @@ def prepare_returns(data, rf=0.0, nperiods=None):
     if isinstance(data, pd.DataFrame):
         for col in data.columns:
             if data[col].dropna().min() >= 0 and data[col].dropna().max() > 1:
-                data[col] = data[col].pct_change()
+                data[col] = data[col].pct_change(fill_method=None)
     elif data.min() >= 0 and data.max() > 1:
-        data = data.pct_change()
+        data = data.pct_change(fill_method=None)
 
     # cleanup data
     data = data.replace([np.inf, -np.inf], float("NaN"))
@@ -1013,7 +1013,7 @@ def prepare_benchmark(benchmark=None, period="max", rf=0.0, is_prepare_returns=T
         benchmark = (
             benchmark_prices.reindex(new_index, method="bfill")
             .reindex(period)
-            .pct_change()
+            .pct_change(fill_method=None)
             .fillna(0)
         )
         benchmark = benchmark[benchmark.index.isin(period)]
