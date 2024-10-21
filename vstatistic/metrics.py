@@ -847,19 +847,19 @@ class Metrics:
         # )
         # tpl = tpl.replace("{{monthly_heatmap}}", utils.embed_figure(figfile, "svg"))
 
-        figfile = utils.file_stream()
-        plot.distribution(
-            self.__returns,
-            figsize=(8, 4),
-            subtitle=False,
-            title=self.__returns.name,
-            savefig={"fname": figfile, "format": "svg"},
-            show=False,
-            ylabel=False,
-            compounded=True,
-            is_prepare_returns=False,
-        )
-        tpl = tpl.replace("{{returns_dist}}", utils.embed_figure(figfile, "svg"))
+        # figfile = utils.file_stream()
+        # plot.distribution(
+        #     self.__returns,
+        #     figsize=(8, 4),
+        #     subtitle=False,
+        #     title=self.__returns.name,
+        #     savefig={"fname": figfile, "format": "svg"},
+        #     show=False,
+        #     ylabel=False,
+        #     compounded=True,
+        #     is_prepare_returns=False,
+        # )
+        # tpl = tpl.replace("{{returns_dist}}", utils.embed_figure(figfile, "svg"))
 
         # END
         tpl = re.sub(r"\{\{(.*?)\}\}", "", tpl)
