@@ -277,7 +277,7 @@ class Metrics:
 
         df = df.fillna(0)
         # pct multiplier
-        pct = 1
+        pct = 100
 
         # return df
         dd = self.calc_dd(df, display=False)
