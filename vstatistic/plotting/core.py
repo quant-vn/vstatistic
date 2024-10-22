@@ -544,7 +544,7 @@ def plot_histogram(
                 palette=pallete,
                 ax=ax,
             )
-        print(x)
+
     # Why do we need average?
     if isinstance(combined_returns, _pd.Series) or len(combined_returns.columns) == 1:
         ax.axvline(
