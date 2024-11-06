@@ -870,12 +870,11 @@ class Metrics:
     def signal_chart(
         self,
         raw: list[pd.DataFrame],
-        trigger: pd.DataFrame,
+        open_position: pd.DataFrame,
+        close_position: pd.DataFrame,
         output: str = "signal_chart.html"
     ):
         _figs: list = []
-        trigger['datetime'] = pd.to_datetime(trigger['datetime'])
-        trigger.set_index('datetime', inplace=True)
         for _df in raw:
             _instrument = _df.iloc[0].instrument
             title = f"Instrument: {_instrument}"
@@ -887,17 +886,15 @@ class Metrics:
                 close=_df['close'])]
             )
             # BUY OPTION
-            buy_df = trigger[
-                (trigger['instrument'] == _instrument) &
-                (trigger['property'] == 'OPEN') &
-                (trigger['side'] == 'Buy') &
-                (trigger['status'] == 'Completed')
+            buy_df = open_position[
+                (open_position['instrument'] == _instrument) &
+                (open_position['side'] == 'Buy')
             ]
             buy_points = _df[_df.index.isin(buy_df.index)]
             buy_hover_text = [
                 "BUY Signal<br>" +
                 f"Time: {index}<br>" +
-                f"Price: {buy_df.loc[index, 'price']:.2f}<br>" +
+                f"Price: {buy_df.loc[index, 'price']}<br>" +
                 f"Size: {buy_df.loc[index, 'size']}"
                 for index in buy_points.index
             ]
@@ -923,17 +920,15 @@ class Metrics:
                 )
             )
             # COVER OPTION
-            cover_df = trigger[
-                (trigger['instrument'] == _instrument) &
-                (trigger['property'] == 'CLOSE') &
-                (trigger['side'] == 'Buy') &
-                (trigger['status'] == 'Completed')
+            cover_df = close_position[
+                (close_position['instrument'] == _instrument) &
+                (close_position['side'] == 'Buy')
             ]
             cover_points = _df[_df.index.isin(cover_df.index)]
             cover_hover_text = [
                 "COVER Signal<br>" +
                 f"Time: {index}<br>" +
-                f"Price: {cover_df.loc[index, 'price']:.2f}<br>" +
+                f"Price: {cover_df.loc[index, 'price']}<br>" +
                 f"Size: {cover_df.loc[index, 'size']}"
                 for index in cover_points.index
             ]
@@ -959,17 +954,15 @@ class Metrics:
                 )
             )
             # SELL OPTION
-            sell_df = trigger[
-                (trigger['instrument'] == _instrument) &
-                (trigger['property'] == 'CLOSE') &
-                (trigger['side'] == 'Sell') &
-                (trigger['status'] == 'Completed')
+            sell_df = close_position[
+                (close_position['instrument'] == _instrument) &
+                (close_position['side'] == 'Sell')
             ]
             sell_points = _df[_df.index.isin(sell_df.index)]
             sell_hover_text = [
                 "SELL Signal<br>" +
                 f"Time: {index}<br>" +
-                f"Price: {sell_df.loc[index, 'price']:.2f}<br>" +
+                f"Price: {sell_df.loc[index, 'price']}<br>" +
                 f"Size: {sell_df.loc[index, 'size']}"
                 for index in sell_points.index
             ]
@@ -995,17 +988,15 @@ class Metrics:
                 )
             )
             # SHORT OPTION
-            short_df = trigger[
-                (trigger['instrument'] == _instrument) &
-                (trigger['property'] == 'OPEN') &
-                (trigger['side'] == 'Sell') &
-                (trigger['status'] == 'Completed')
+            short_df = open_position[
+                (open_position['instrument'] == _instrument) &
+                (open_position['side'] == 'Sell')
             ]
             short_points = _df[_df.index.isin(short_df.index)]
             short_hover_text = [
                 "SHORT Signal<br>" +
                 f"Time: {index}<br>" +
-                f"Price: {short_df.loc[index, 'price']:.2f}<br>" +
+                f"Price: {short_df.loc[index, 'price']}<br>" +
                 f"Size: {short_df.loc[index, 'size']}"
                 for index in short_points.index
             ]
