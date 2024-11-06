@@ -7,7 +7,7 @@ from datetime import datetime
 from tabulate import tabulate
 from packaging.version import Version
 from dateutil.relativedelta import relativedelta
-
+import plotly.graph_objects as go
 from . import core, utils, plot
 
 PANDAS_VERSION_2 = Version(pd.__version__) >= Version("2")
@@ -866,3 +866,182 @@ class Metrics:
         tpl = tpl.replace("white-space:pre;", "")
         with open(output, "w", encoding="utf-8") as f:
             f.write(tpl)
+
+    def signal_chart(
+        self,
+        raw: list[pd.DataFrame],
+        trigger: pd.DataFrame,
+        output: str = "signal_chart.html"
+    ):
+        _figs: list = []
+        trigger['datetime'] = pd.to_datetime(trigger['datetime'])
+        trigger.set_index('datetime', inplace=True)
+        for _df in raw:
+            _instrument = _df.iloc[0].instrument
+            title = f"Instrument: {_instrument}"
+            _fig = go.Figure(
+                data=[go.Candlestick(x=_df.index,
+                open=_df['open'],
+                high=_df['high'],
+                low=_df['low'],
+                close=_df['close'])]
+            )
+            # BUY OPTION
+            buy_df = trigger[
+                (trigger['instrument'] == _instrument) &
+                (trigger['property'] == 'OPEN') &
+                (trigger['side'] == 'Buy') &
+                (trigger['status'] == 'Completed')
+            ]
+            buy_points = _df[_df.index.isin(buy_df.index)]
+            buy_hover_text = [
+                "BUY Signal<br>" +
+                f"Time: {index}<br>" +
+                f"Price: {buy_df.loc[index, 'price']:.2f}<br>" +
+                f"Size: {buy_df.loc[index, 'size']}"
+                for index in buy_points.index
+            ]
+            _fig.add_trace(
+                go.Scatter(
+                    x=buy_points.index,
+                    y=_df.loc[buy_points.index, 'low'] * 0.98,
+                    mode='markers',
+                    name='Buy Signal',
+                    marker=dict(
+                        symbol='triangle-up',
+                        size=12,
+                        color='green',
+                        line=dict(width=1)
+                    ),
+                    # Tùy chỉnh hover
+                    hoverinfo='text',  # Chỉ hiển thị text tùy chỉnh
+                    hovertext=buy_hover_text,
+                    hoverlabel=dict(
+                        bgcolor='green',
+                        font=dict(size=12, color='white')
+                    )
+                )
+            )
+            # COVER OPTION
+            cover_df = trigger[
+                (trigger['instrument'] == _instrument) &
+                (trigger['property'] == 'CLOSE') &
+                (trigger['side'] == 'Buy') &
+                (trigger['status'] == 'Completed')
+            ]
+            cover_points = _df[_df.index.isin(cover_df.index)]
+            cover_hover_text = [
+                "COVER Signal<br>" +
+                f"Time: {index}<br>" +
+                f"Price: {cover_df.loc[index, 'price']:.2f}<br>" +
+                f"Size: {cover_df.loc[index, 'size']}"
+                for index in cover_points.index
+            ]
+            _fig.add_trace(
+                go.Scatter(
+                    x=cover_points.index,
+                    y=_df.loc[cover_points.index, 'low'] * 0.98,
+                    mode='markers',
+                    name='Cover Signal',
+                    marker=dict(
+                        symbol='triangle-up',
+                        size=12,
+                        color='green',
+                        line=dict(width=1)
+                    ),
+                    # Tùy chỉnh hover
+                    hoverinfo='text',  # Chỉ hiển thị text tùy chỉnh
+                    hovertext=cover_hover_text,
+                    hoverlabel=dict(
+                        bgcolor='green',
+                        font=dict(size=12, color='white')
+                    )
+                )
+            )
+            # SELL OPTION
+            sell_df = trigger[
+                (trigger['instrument'] == _instrument) &
+                (trigger['property'] == 'CLOSE') &
+                (trigger['side'] == 'Sell') &
+                (trigger['status'] == 'Completed')
+            ]
+            sell_points = _df[_df.index.isin(sell_df.index)]
+            sell_hover_text = [
+                "SELL Signal<br>" +
+                f"Time: {index}<br>" +
+                f"Price: {sell_df.loc[index, 'price']:.2f}<br>" +
+                f"Size: {sell_df.loc[index, 'size']}"
+                for index in sell_points.index
+            ]
+            _fig.add_trace(
+                go.Scatter(
+                    x=sell_points.index,
+                    y=_df.loc[sell_points.index, 'high'] * 1.02,
+                    mode='markers',
+                    name='Sell Signal',
+                    marker=dict(
+                        symbol='triangle-down',
+                        size=12,
+                        color='red',
+                        line=dict(width=1)
+                    ),
+                    # Tùy chỉnh hover
+                    hoverinfo='text',  # Chỉ hiển thị text tùy chỉnh
+                    hovertext=sell_hover_text,
+                    hoverlabel=dict(
+                        bgcolor='red',
+                        font=dict(size=12, color='white')
+                    )
+                )
+            )
+            # SHORT OPTION
+            short_df = trigger[
+                (trigger['instrument'] == _instrument) &
+                (trigger['property'] == 'OPEN') &
+                (trigger['side'] == 'Sell') &
+                (trigger['status'] == 'Completed')
+            ]
+            short_points = _df[_df.index.isin(short_df.index)]
+            short_hover_text = [
+                "SHORT Signal<br>" +
+                f"Time: {index}<br>" +
+                f"Price: {short_df.loc[index, 'price']:.2f}<br>" +
+                f"Size: {short_df.loc[index, 'size']}"
+                for index in short_points.index
+            ]
+            _fig.add_trace(
+                go.Scatter(
+                    x=short_points.index,
+                    y=_df.loc[short_points.index, 'high'] * 1.02,
+                    mode='markers',
+                    name='Short Signal',
+                    marker=dict(
+                        symbol='triangle-down',
+                        size=12,
+                        color='red',
+                        line=dict(width=1)
+                    ),
+                    # Tùy chỉnh hover
+                    hoverinfo='text',  # Chỉ hiển thị text tùy chỉnh
+                    hovertext=short_hover_text,
+                    hoverlabel=dict(
+                        bgcolor='red',
+                        font=dict(size=12, color='white')
+                    )
+                )
+            )
+            _fig.update_layout(
+                showlegend=True,
+                legend=dict(
+                    yanchor="top",
+                    y=0.99,
+                    xanchor="left",
+                    x=0.01
+                )
+            )
+            _fig.update_layout(title_text=title)
+            _figs.append(_fig)
+
+        with open(output, "w", encoding="utf-8") as f:
+            for _fig in _figs:
+                f.write(_fig.to_html(full_html=False))
