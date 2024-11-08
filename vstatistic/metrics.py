@@ -872,6 +872,7 @@ class Metrics:
         raw: list[pd.DataFrame],
         open_position: pd.DataFrame,
         close_position: pd.DataFrame,
+        is_intraday: bool = True,
         output: str = "signal_chart.html"
     ):
         _figs: list = []
@@ -1030,12 +1031,14 @@ class Metrics:
                     x=0.01
                 )
             )
+            _range_break = [
+                dict(bounds=["sat", "mon"])
+            ]
+            if is_intraday:
+                _range_break.append(dict(bounds=[16, 9], pattern="hour"))
             _fig.update_xaxes(
                 rangeslider_visible=True,
-                rangebreaks=[
-                    dict(bounds=["sat", "mon"]),
-                    dict(bounds=[15, 9], pattern="hour"),
-                ]
+                rangebreaks=_range_break
             )
             _fig.update_layout(title_text=title)
             _figs.append(_fig)
